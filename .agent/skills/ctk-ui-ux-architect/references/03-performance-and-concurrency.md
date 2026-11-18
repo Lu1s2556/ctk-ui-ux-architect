@@ -2,6 +2,7 @@
 # Compatibilidad estricta: Python 3.8.10+
 
 from __future__ import annotations
+import inspect
 import queue
 import threading
 import time
@@ -49,6 +50,8 @@ class UIQueueBatcher:
 
     def post(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         """Encola una función para ejecutarse de forma segura en el hilo principal."""
+        if not self._running:
+            return
         self._queue.put((fn, args, kwargs))
 
     def run_async(
@@ -68,10 +71,17 @@ class UIQueueBatcher:
                     self.post(on_progress, data)
 
             try:
-                # Comprobar si worker_fn acepta el parámetro report_progress
+                # Comprobación de firma sin invocar erróneamente en caso de excepciones internas
+                accepts_progress = False
                 try:
+                    sig = inspect.signature(worker_fn)
+                    accepts_progress = "report_progress" in sig.parameters
+                except (ValueError, TypeError):
+                    pass
+
+                if accepts_progress:
                     result = worker_fn(report_progress=_safe_progress)
-                except TypeError:
+                else:
                     result = worker_fn()
 
                 if on_success:
@@ -88,6 +98,13 @@ class UIQueueBatcher:
 
     def stop(self) -> None:
         self._running = False
+        # Vaciar tareas pendientes para evitar acumulación tras detener el servicio
+        while not self._queue.empty():
+            try:
+                self._queue.get_nowait()
+                self._queue.task_done()
+            except queue.Empty:
+                break
 
 
 # --- 2. SharedStateSnapshot: Estado Compartido Protegido y Render Diferencial ---
@@ -196,8 +213,11 @@ class TimeSlicedBuilder:
             if self.on_complete:
                 self.on_complete()
 
-    def cancel(self) -> None:
-        """Detiene la construcción si el usuario cambia de vista o aplica un filtro nuevo."""
+    def cancel(self, clear_container: bool = False) -> None:
+        """
+        Detiene la construcción si el usuario cambia de vista o aplica un filtro nuevo.
+        Si `clear_container` es True, elimina los widgets hijos agregados hasta el momento.
+        """
         self._is_cancelled = True
         if self._after_id:
             try:
@@ -205,6 +225,13 @@ class TimeSlicedBuilder:
             except Exception:
                 pass
             self._after_id = None
+
+        if clear_container:
+            for child in self.container.winfo_children():
+                try:
+                    child.destroy()
+                except Exception:
+                    pass
 
 
 # --- 4. Debouncer: Control de Frecuencia de Eventos (Teclado y Resize) ---
