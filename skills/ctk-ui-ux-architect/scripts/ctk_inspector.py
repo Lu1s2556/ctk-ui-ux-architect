@@ -217,6 +217,119 @@ class CTkInspector:
         return "PASSED_PERFECT"
 
 
+def audit(app_instance: Any, output_dir: str = "./ui_audit", close_after: bool = False) -> None:
+    """
+    Función de una sola línea para auditar cualquier app CustomTkinter en ejecución.
+    Ejemplo de uso:
+        from ctk_inspector import audit; audit(app)
+    """
+    inspector = CTkInspector(app_instance, output_dir=output_dir)
+
+    def _run() -> None:
+        report = inspector.run_audit(capture_screenshots=False)
+        print("\n================= 🔍 AUDITORÍA CTK =================")
+        verdict = report["verdict"]
+        symbol = "🟢" if verdict == "PASSED_PERFECT" else ("🟡" if verdict == "PASSED_WITH_WARNINGS" else "🔴")
+        print(f"Veredicto: {symbol} {verdict}")
+        print(f"Total widgets vivos: {report['metrics']['total_widgets']} (Límite Canvas: 200)")
+        print(f"Contenedores colapsados: {len(report['metrics']['collapsed_containers'])}")
+        print(f"Textos cortados/truncados: {len(report['metrics']['truncated_texts'])}")
+        print(f"Colores sin tupla adaptativa: {report['metrics']['hardcoded_single_colors_count']}")
+        if report["metrics"]["criticals"]:
+            print("\n🚨 CRÍTICOS:")
+            for c in report["metrics"]["criticals"]:
+                print(f"  • {c}")
+        if report["metrics"]["warnings"]:
+            print("\n⚠️ ADVERTENCIAS:")
+            for w in report["metrics"]["warnings"]:
+                print(f"  • {w}")
+        print(f"Reporte guardado en: {inspector.report_path}")
+        print("===================================================\n")
+        if close_after:
+            try:
+                app_instance.quit()
+                app_instance.destroy()
+            except Exception:
+                pass
+
+    app_instance.after(600, _run)
+
+
+def find_all_targets(max_depth: int = 4, scan_templates: bool = False) -> List[str]:
+    """
+    Busca de forma recursiva archivos Python que instancien o hereden de ctk.CTk,
+    ignorando directorios irrelevantes como .git, venv, build, etc.
+    Por defecto ignora .agent y skills para no auto-auditar las plantillas internas,
+    a menos que no se detecte ninguna app externa o scan_templates sea True.
+    """
+    ignored_dirs = {
+        ".git", ".claude-plugin", ".codex-plugin",
+        "venv", ".venv", "env", ".env", "__pycache__", "build", "dist",
+        "node_modules", ".idea", ".vscode", "ui_audit"
+    }
+    if not scan_templates:
+        ignored_dirs.update({".agent", "skills"})
+
+    found_targets: List[str] = []
+
+    for root, dirs, files in os.walk("."):
+        # Filtrar directorios ignorados in-place para que os.walk no entre en ellos
+        dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.startswith(".")]
+
+        depth = os.path.relpath(root, ".").count(os.sep)
+        if depth >= max_depth:
+            dirs.clear()
+            continue
+
+        for f in files:
+            if f.endswith(".py") and not f.startswith("test_") and f != "ctk_inspector.py":
+                file_path = os.path.normpath(os.path.join(root, f))
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as fp:
+                        content = fp.read()
+                        if "customtkinter" in content or "ctk.CTk" in content:
+                            found_targets.append(file_path)
+                except Exception:
+                    pass
+
+    return found_targets
+
+
+def select_target_interactively() -> Optional[str]:
+    """Detecta objetivos y permite al usuario elegir si hay múltiples apps en el repositorio."""
+    targets = find_all_targets(scan_templates=False)
+    # Si no hay apps de usuario, permitir auditar plantillas del paquete como demostración
+    if not targets:
+        template_targets = find_all_targets(scan_templates=True)
+        if template_targets:
+            targets = template_targets
+
+    if not targets:
+        return None
+    if len(targets) == 1:
+        return targets[0]
+
+    # Priorizar candidatos estándar como primer opción sugerida si existen
+    priority_names = {"main.py", "app.py", "gui.py", "window.py"}
+    targets.sort(key=lambda t: (0 if os.path.basename(t).lower() in priority_names else 1, t))
+
+    print("\n🔍 Se detectaron aplicaciones CustomTkinter en el proyecto:")
+    for idx, t in enumerate(targets, start=1):
+        print(f"  [{idx}] {t}")
+
+    try:
+        choice = input(f"\n👉 Elige una opción [1-{len(targets)}] (Enter para [1]): ").strip()
+        if not choice:
+            return targets[0]
+        selected_idx = int(choice) - 1
+        if 0 <= selected_idx < len(targets):
+            return targets[selected_idx]
+    except Exception:
+        pass
+
+    return targets[0]
+
+
 def inspect_file(target_file: str, class_name: Optional[str] = None, output_dir: str = "./ui_audit") -> Dict[str, Any]:
     """Carga dinámicamente un archivo Python con una app CustomTkinter y ejecuta la auditoría."""
     abs_path = os.path.abspath(target_file)
@@ -262,21 +375,24 @@ def inspect_file(target_file: str, class_name: Optional[str] = None, output_dir:
         print("Ejecutando escaneo visual y de árbol de widgets...")
         report = inspector.run_audit(capture_screenshots=True)
         audit_result.update(report)
-        print("\n--- REPORTE DE AUDITORÍA ---")
-        print("Veredicto:", report["verdict"])
-        print("Total Widgets:", report["metrics"]["total_widgets"])
-        print("Contenedores colapsados:", len(report["metrics"]["collapsed_containers"]))
-        print("Textos truncados:", len(report["metrics"]["truncated_texts"]))
-        print("Colores hardcodeados:", report["metrics"]["hardcoded_single_colors_count"])
+        print("\n================= 🔍 AUDITORÍA CTK =================")
+        verdict = report["verdict"]
+        symbol = "🟢" if verdict == "PASSED_PERFECT" else ("🟡" if verdict == "PASSED_WITH_WARNINGS" else "🔴")
+        print(f"Veredicto: {symbol} {verdict}")
+        print(f"Total Widgets: {report['metrics']['total_widgets']}")
+        print(f"Contenedores colapsados: {len(report['metrics']['collapsed_containers'])}")
+        print(f"Textos truncados: {len(report['metrics']['truncated_texts'])}")
+        print(f"Colores hardcodeados: {report['metrics']['hardcoded_single_colors_count']}")
         if report["metrics"]["criticals"]:
-            print("\n[CRÍTICOS]:")
+            print("\n🚨 CRÍTICOS:")
             for crit in report["metrics"]["criticals"]:
-                print(" -", crit)
+                print("  •", crit)
         if report["metrics"]["warnings"]:
-            print("\n[ADVERTENCIAS]:")
+            print("\n⚠️ ADVERTENCIAS:")
             for warn in report["metrics"]["warnings"]:
-                print(" -", warn)
+                print("  •", warn)
         print("\nReporte guardado en:", inspector.report_path)
+        print("===================================================\n")
         try:
             app.quit()
             app.destroy()
@@ -290,14 +406,22 @@ def inspect_file(target_file: str, class_name: Optional[str] = None, output_dir:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CTk UI/UX Inspector")
-    parser.add_argument("--target", required=True, help="Ruta al archivo .py que define la aplicación CTk")
+    parser.add_argument("--target", default=None, help="Ruta al archivo .py que define la aplicación CTk (autodetectado si se omite)")
     parser.add_argument("--class", dest="class_name", default=None, help="Nombre de la clase que hereda de ctk.CTk")
     parser.add_argument("--output-dir", default="./ui_audit", help="Directorio para reporte y capturas")
     args = parser.parse_args()
 
+    target = args.target or select_target_interactively()
+    if not target:
+        print("\n❌ Error: No se encontró ningún archivo con CustomTkinter en el proyecto.")
+        print("💡 Sugerencia: Especifica la ruta directamente con:")
+        print("   python ctk_inspector.py --target ruta/a/tu_app.py\n")
+        sys.exit(1)
+
+    print(f"🎯 Auditando archivo: {target}")
     try:
-        report = inspect_file(args.target, class_name=args.class_name, output_dir=args.output_dir)
+        report = inspect_file(target, class_name=args.class_name, output_dir=args.output_dir)
         sys.exit(0 if report.get("verdict") != "FAILED_CRITICAL" else 1)
     except Exception as exc:
-        print("Error durante la auditoría:", str(exc))
+        print("❌ Error durante la auditoría:", str(exc))
         sys.exit(1)

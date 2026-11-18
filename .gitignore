@@ -221,3 +221,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CTk UI/UX Architect outputs & audits
+ui_audit/
+*.audit.json
+01_dark_default.png
+02_light_default.png
+03_responsive_small.png
+
+# Internal task planning
+plan maestro.md
+*.scratch.*
+
+# Virtual environments
+.venv/
+venv/
+env/
+
