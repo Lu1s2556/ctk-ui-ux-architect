@@ -1,0 +1,11 @@
+{
+  "name": "ctk-ui-ux-architect",
+  "version": "1.0.0",
+  "description": "CustomTkinter desktop UI/UX architecture, Canvas budget enforcement, and performance auditing for Python 3.8.10+.",
+  "author": {
+    "name": "Lu1s2556",
+    "url": "https://github.com/Lu1s2556"
+  },
+  "repository": "https://github.com/Lu1s2556/ctk-ui-ux-architect",
+  "skills": "./skills/"
+}

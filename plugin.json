@@ -1,0 +1,10 @@
+{
+  "name": "ctk-ui-ux-architect",
+  "version": "1.0.0",
+  "description": "Arquitectura, diseño de sistemas UI/UX y auditoría de alto rendimiento para CustomTkinter en Python 3.8.10+",
+  "author": "Lu1s2556",
+  "repository": "https://github.com/Lu1s2556/ctk-ui-ux-architect",
+  "skills": [
+    "skills/ctk-ui-ux-architect"
+  ]
+}

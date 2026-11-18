@@ -1,0 +1,23 @@
+{
+  "name": "ctk-ui-ux-architect",
+  "version": "1.0.0",
+  "description": "High-performance desktop UI/UX architect for Python CustomTkinter (Python 3.8.10+).",
+  "author": {
+    "name": "Lu1s2556",
+    "url": "https://github.com/Lu1s2556"
+  },
+  "homepage": "https://github.com/Lu1s2556/ctk-ui-ux-architect",
+  "repository": "https://github.com/Lu1s2556/ctk-ui-ux-architect",
+  "license": "MIT",
+  "keywords": ["customtkinter", "tkinter", "python-gui", "ui-ux", "desktop"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "CTk UI/UX Architect",
+    "shortDescription": "High-performance CustomTkinter UI architect",
+    "longDescription": "MVC architecture, 3-level elevation system, UIQueue batching, canvas budget enforcement, and zero layout shift components for CustomTkinter.",
+    "developerName": "Lu1s2556",
+    "category": "Developer Tools",
+    "capabilities": ["Instructions", "Skills"],
+    "websiteURL": "https://github.com/Lu1s2556/ctk-ui-ux-architect"
+  }
+}

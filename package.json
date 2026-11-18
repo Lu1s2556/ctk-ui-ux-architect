@@ -1,0 +1,30 @@
+{
+  "name": "ctk-ui-ux-architect",
+  "version": "1.0.0",
+  "description": "CustomTkinter desktop UI/UX architecture, Canvas budget enforcement, and performance auditing for Python 3.8.10+.",
+  "keywords": ["customtkinter", "ctk", "tkinter", "python-gui", "ui-ux", "antigravity-plugin", "skills"],
+  "license": "MIT",
+  "author": {
+    "name": "Lu1s2556",
+    "url": "https://github.com/Lu1s2556"
+  },
+  "homepage": "https://github.com/Lu1s2556/ctk-ui-ux-architect",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lu1s2556/ctk-ui-ux-architect.git"
+  },
+  "scripts": {
+    "sync-skills": "python -c \"import shutil, os; shutil.copytree('.agent/skills', 'skills', dirs_exist_ok=True); print('Skills synced successfully!')\""
+  },
+  "files": [
+    "skills/",
+    ".agent/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    "plugin.json",
+    "plugin.yaml",
+    "AGENTS.md",
+    "INSTALL.md",
+    "README.md"
+  ]
+}
