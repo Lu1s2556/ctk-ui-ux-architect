@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/banner.png" alt="CTk UI/UX Architect Banner" width="100%" />
+<img src="./assets/banner.jpg" alt="CTk UI/UX Architect Banner" width="100%" />
 
 # ⚡ CTk UI/UX Architect
 
